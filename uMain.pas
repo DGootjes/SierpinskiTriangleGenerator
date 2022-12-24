@@ -93,6 +93,12 @@ begin
       point := fSierpinskiTriangle.PickPointHalfwayToRandomVertexFrom(fSierpinskiTriangle.ExtraPoints.Last);
     end;
     DrawPoint(point);
+
+    if i div 1000 = 0 then
+    begin
+      imSierpinski.Repaint;
+      Application.ProcessMessages;
+    end;
   end;
 end;
 
