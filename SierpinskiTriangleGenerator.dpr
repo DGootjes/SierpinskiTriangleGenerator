@@ -2,7 +2,8 @@ program SierpinskiTriangleGenerator;
 
 uses
   Vcl.Forms,
-  uMain in 'uMain.pas' {Form2};
+  uMain in 'uMain.pas' {Form2},
+  uSierpinskiTriangle in 'uSierpinskiTriangle.pas';
 
 {$R *.res}
 
