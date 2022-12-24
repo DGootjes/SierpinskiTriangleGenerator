@@ -3,12 +3,13 @@ unit uMain;
 interface
 
 uses
-  Winapi.Windows, Winapi.Messages,
+  Winapi.Messages,
   System.SysUtils, System.Variants,
   System.Classes,System.Generics.Collections,
   Vcl.Controls, Vcl.Forms, Vcl.Dialogs,
   Vcl.StdCtrls, Vcl.ExtCtrls, Vcl.Graphics,
-  Math;
+  Math,
+  uSierpinskiTriangle;
 
   type
   TForm2 = class(TForm)
@@ -27,15 +28,10 @@ uses
   private
     fFormRatio: Double;
     IsInitialized: Boolean;
-    fPointSize: Integer;
 
-    fInitialPoints: TList<TPoint>;
-    fExtraPoints: TList<TPoint>;
+    fSierpinskiTriangle: TSierpinskiTriangle;
 
     procedure DrawPoint(point: TPoint);
-    function RandomPointWithinTriangle: TPoint;
-    function FindMidwayPointFromRandomVertex(point: TPoint): TPoint;
-    procedure Pick3SemiRandomInitialPoints;
   end;
 
 var
@@ -48,6 +44,7 @@ implementation
 procedure TForm2.btnInitialPickerClick(Sender: TObject);
 var
   brush: TBrush;
+  Point: TPoint;
 begin
   if not IsInitialized then
   begin
@@ -56,10 +53,14 @@ begin
     brush := TBrush.Create;
     brush.Color := clBlue;
     brush.Style := bsSolid;
-    imSierpinski.Canvas.Brush := brush;
-    fPointSize := 5;
 
-    Pick3SemiRandomInitialPoints;
+    imSierpinski.Canvas.Brush := brush;
+
+    fSierpinskiTriangle.PickThreeRandomInitialPoints;
+    for Point in fSierpinskiTriangle.InitialPoints do
+    begin
+       DrawPoint(point);
+    end;
   end
   else
   begin
@@ -74,19 +75,24 @@ var
   Amount: Integer;
   i: Integer;
 begin
+  if not IsInitialized then
+  begin
+    btnInitialPickerClick(nil);
+  end;
+
   Amount := StrToInt(edtPointCount.Text);
   for i := 1 to Amount do
   begin
-    if fExtraPoints.Count = 0 then
+    if fSierpinskiTriangle.ExtraPoints.Count = 0 then
     begin
-      point := RandomPointWithinTriangle;
+      point := fSierpinskiTriangle.PickRandomPointInTriangle;
+      point := fSierpinskiTriangle.PickPointHalfwayToRandomVertexFrom(point);
     end
     else
     begin
-      point := FindMidwayPointFromRandomVertex(fExtraPoints.Last);
+      point := fSierpinskiTriangle.PickPointHalfwayToRandomVertexFrom(fSierpinskiTriangle.ExtraPoints.Last);
     end;
     DrawPoint(point);
-    fExtraPoints.Add(point);
   end;
 end;
 
@@ -95,8 +101,8 @@ var
   brush: TBrush;
 begin
   IsInitialized := False;
-  fInitialPoints.Clear;
-
+  fSierpinskiTriangle.InitialPoints.Clear;
+  fSierpinskiTriangle.ExtraPoints.Clear;
 
   brush := TBrush.Create;
   brush.Color := clWebOrange;
@@ -117,87 +123,21 @@ end;
 procedure TForm2.FormCreate(Sender: TObject);
 begin
   fFormRatio := 2 / 3;
-  fInitialPoints := TList<TPoint>.Create;
-  fExtraPoints := TList<TPoint>.Create;
+  fSierpinskiTriangle := TSierpinskiTriangle.Create;
+  fSierpinskiTriangle.ImageWidth := imSierpinski.Width;
+  fSierpinskiTriangle.ImageHeight := imSierpinski.Height;
   btnResetClick(nil);
 end;
 
 procedure TForm2.FormDestroy(Sender: TObject);
 begin
-  FreeAndNil(fInitialPoints);
-  FreeAndNil(fExtraPoints);
+  FreeAndNil(fSierpinskiTriangle);
 end;
 
 procedure TForm2.FormResize(Sender: TObject);
 begin
   imSierpinski.Width := Floor(Self.Width * fFormRatio);
   pnControls.Width := Floor(Self.Width * (1 - fFormRatio));
-end;
-
-function TForm2.FindMidwayPointFromRandomVertex(point: TPoint): TPoint;
-var
-  vertex: TPoint;
-begin
-  // Pick a random triangle vertex from the initial 3 points
-  vertex := fInitialPoints[Random(3)];
-
-  // Create a point midway
-  Result := TPoint.Create((point.X + vertex.X) div 2,(point.Y + vertex.Y) div 2);
-end;
-
-procedure TForm2.Pick3SemiRandomInitialPoints;
-var
-  X: Integer;
-  Y: Integer;
-  Point: TPoint;
-begin
-  X := Random(imSierpinski.Width - 2 * fPointSize) + fPointSize;
-  Y := fPointSize;
-  Point := TPoint.Create(X, Y);
-  fInitialPoints.Add(Point);
-  DrawPoint(Point);
-
-  X := Random(20 * fPointSize) + fPointSize;
-  Y := imSierpinski.Height - 2 * fPointSize;
-  Point := TPoint.Create(X, Y);
-  fInitialPoints.Add(Point);
-  DrawPoint(Point);
-
-  X := imSierpinski.Width - 21 * fPointSize + Random(20 * fPointSize);
-  Y := imSierpinski.Height - 2 * fPointSize;
-  Point := TPoint.Create(X, Y);
-  fInitialPoints.Add(Point);
-  DrawPoint(Point);
-end;
-
-function TForm2.RandomPointWithinTriangle: TPoint;
-var
-  a, b: TPoint; // Vectors
-  P1, P2, P3: TPoint;
-  u1, u2: Double;
-  w: TPoint;
-begin
-  P1 := fInitialPoints[0];
-  P2 := fInitialPoints[1];
-  P3 := fInitialPoints[2];
-
-  a := P2 - P1;
-  b := P3 - P1;
-
-  // Generate random value between 0 and 1
-  u1 := Random;
-  u2 := Random;
-
-  if u1 + u2 > 1.0 then
-  begin
-    u1 := 1 - u1;
-    u2 := 1 - u2;
-  end;
-
-
-  w := TPoint.Create(P1.X + Floor(u1 * a.X + u2 * b.X),
-                     P1.Y + Floor(u1 * a.Y + u2 * b.Y));
-  Result := w;
 end;
 
 end.
